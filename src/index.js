@@ -21,6 +21,7 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'https://dashboard.washlab.org',
     'http://localhost:3001',
     "https://admin.richworldsafaris.com",
     'https://www.richworldsafaris.com',
