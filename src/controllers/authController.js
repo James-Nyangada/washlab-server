@@ -4,25 +4,65 @@ const User = require('../models/userModel')
 const crypto = require('crypto');
 const sendEmail = require('../utilities/sendEmail'); // implement this with nodemailer
 
-const register = async(req, res ) => {
-    try{
-   const {firstName, lastName, role, email, password} = req.body
-   const hashedPassword = await bcrypt.hash(password, 10)
-   const code = crypto.randomInt(100000, 999999).toString();
-   const newUser = new User({firstName, lastName, role: "super-admin", email, verificationCode: code, password: hashedPassword, verificationCodeExpires: Date.now() + 10 * 60 * 1000})
-   await newUser.save()
-   try {
-  await sendEmail(email, code, "Your Verification Code", `Code: ${code}`);
-} catch (emailErr) {
-  console.error("Email send failed:", emailErr.message);
-}
+const register = async (req, res) => {
+  try {
+    console.log("🟢 [REGISTER] Incoming registration request...");
+    const { firstName, lastName, role, email, password } = req.body;
 
-   res.status(201).json({message: "User registered successfully, Code sent", user: newUser}) 
-   }catch(err){
-        console.error(err); // Add this line
-        res.status(500).json({message: "Internal server errors", error: err.message})
-   }
-}
+    console.log("📩 Email received:", email);
+    console.log("🧍 Creating new user...");
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const code = crypto.randomInt(100000, 999999).toString();
+
+    const newUser = new User({
+      firstName,
+      lastName,
+      role: "super-admin",
+      email,
+      verificationCode: code,
+      password: hashedPassword,
+      verificationCodeExpires: Date.now() + 10 * 60 * 1000,
+    });
+
+    await newUser.save();
+    console.log("✅ User saved to database:", newUser.email);
+
+    // Logging before sending email
+    console.log("📨 Attempting to send verification email...");
+    try {
+      await sendEmail(
+        email,
+        code,
+        "Your Verification Code",
+        `Your verification code is: ${code}`
+      );
+      console.log("✅ Verification email sent successfully to:", email);
+    } catch (emailErr) {
+      console.error("❌ Failed to send verification email:", emailErr.message);
+      // Still respond successfully so user isn’t blocked
+      return res.status(201).json({
+        message:
+          "User registered successfully, but verification email failed to send.",
+        error: emailErr.message,
+        user: newUser,
+      });
+    }
+
+    // Logging after email success
+    console.log("🎉 Registration process complete for:", email);
+
+    res.status(201).json({
+      message: "User registered successfully, code sent",
+      user: newUser,
+    });
+  } catch (err) {
+    console.error("❌ [REGISTER] Internal error:", err.message);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: err.message });
+  }
+};
 
 const login = async (req, res ) => {  
     try{
