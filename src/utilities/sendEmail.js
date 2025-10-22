@@ -2,8 +2,8 @@ const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
-  port: process.env.SMTP_PORT || 587,
-  secure: false, // TLS
+  port: parseInt(process.env.SMTP_PORT) || 465, // Use 465 for SSL
+  secure: true, // Use SSL
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -12,6 +12,16 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false,
   },
   connectionTimeout: 10000,
+  greetingTimeout: 10000,
+});
+
+// Verify transporter configuration on startup
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error("❌ SMTP connection error:", error.message);
+  } else {
+    console.log("✅ SMTP server is ready to send emails");
+  }
 });
 
 module.exports = async (to, code) => {
