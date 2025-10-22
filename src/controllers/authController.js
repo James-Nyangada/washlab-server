@@ -11,7 +11,11 @@ const register = async(req, res ) => {
    const code = crypto.randomInt(100000, 999999).toString();
    const newUser = new User({firstName, lastName, role: "super-admin", email, verificationCode: code, password: hashedPassword, verificationCodeExpires: Date.now() + 10 * 60 * 1000})
    await newUser.save()
-   await sendEmail(email,code, "Your Verification Code", `Code: ${code}`);
+   try {
+  await sendEmail(email, code, "Your Verification Code", `Code: ${code}`);
+} catch (emailErr) {
+  console.error("Email send failed:", emailErr.message);
+}
 
    res.status(201).json({message: "User registered successfully, Code sent", user: newUser}) 
    }catch(err){
