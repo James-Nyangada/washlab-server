@@ -1,17 +1,17 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587, // use 587 for TLS
-  secure: false, // true for port 465, false for 587
+  host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
+  port: process.env.SMTP_PORT || 587,
+  secure: false, // TLS
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false, // allows self-signed certs, prevents TLS hang
+    rejectUnauthorized: false,
   },
-  connectionTimeout: 10000, // 10 seconds
+  connectionTimeout: 10000,
 });
 
 module.exports = async (to, code) => {
@@ -28,11 +28,17 @@ module.exports = async (to, code) => {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to,
-    subject: "Your Verification Code",
-    html,
-  });
+  try {
+    console.log("📨 Sending email to:", to);
+    const info = await transporter.sendMail({
+      from: `"WashLab Dashboard" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: "Your Verification Code",
+      html,
+    });
+    console.log("✅ Email sent:", info.response);
+  } catch (err) {
+    console.error("❌ Failed to send email:", err.message);
+    throw err;
+  }
 };
-
