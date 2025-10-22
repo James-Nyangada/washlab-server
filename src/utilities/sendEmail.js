@@ -1,9 +1,11 @@
-const Brevo = require("@getbrevo/brevo");
+const brevo = require("@getbrevo/brevo");
 
-const client = Brevo.ApiClient.instance;
-client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
-
-const apiInstance = new Brevo.TransactionalEmailsApi();
+// Initialize Brevo API
+const apiInstance = new brevo.TransactionalEmailsApi();
+apiInstance.setApiKey(
+  brevo.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
 
 module.exports = async (to, code) => {
   const htmlContent = `
@@ -19,12 +21,11 @@ module.exports = async (to, code) => {
     </div>
   `;
 
-  const sendSmtpEmail = {
-    sender: { name: "WashLab Dashboard", email: process.env.EMAIL_USER },
-    to: [{ email: to }],
-    subject: "Your Verification Code",
-    htmlContent,
-  };
+  const sendSmtpEmail = new brevo.SendSmtpEmail();
+  sendSmtpEmail.sender = { name: "WashLab Dashboard", email: process.env.EMAIL_USER };
+  sendSmtpEmail.to = [{ email: to }];
+  sendSmtpEmail.subject = "Your Verification Code";
+  sendSmtpEmail.htmlContent = htmlContent;
 
   try {
     console.log("📨 Sending via Brevo API...");
