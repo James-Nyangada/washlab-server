@@ -18,7 +18,7 @@ const register = async (req, res) => {
     const newUser = new User({
       firstName,
       lastName,
-      role: "super-admin",
+      role,
       email,
       verificationCode: code,
       password: hashedPassword,
