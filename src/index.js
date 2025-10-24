@@ -10,6 +10,7 @@ const carbonRoutes = require("./routes/carbonRoutes");
 const docsRoutes = require("./routes/docsRoutes");
 const alertRoutes = require("./routes/alertRoutes");
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 const cors = require('cors');
 
 
@@ -59,9 +60,11 @@ app.use("/api", financeRoutes);
 app.use("/api", waterQualityRoutes);
 app.use("/api", hygieneRoutes);
 app.use("/api", carbonRoutes);
-app.use("/api", docsRoutes);
+app.use("/api", docsRoutes);  
 app.use("/api", alertRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+
 
 
 

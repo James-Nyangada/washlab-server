@@ -64,6 +64,57 @@ const register = async (req, res) => {
   }
 };
 
+// POST /api/auth/register-admin - Admin creates user without email verification
+const registerAdmin = async (req, res) => {
+  try {
+    console.log("🟢 [REGISTER-ADMIN] Incoming admin registration request...");
+    const { firstName, lastName, role, email, password } = req.body;
+
+    console.log("📩 Email received:", email);
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    console.log("🧍 Creating new user (admin-created)...");
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      firstName,
+      lastName,
+      role,
+      email,
+      password: hashedPassword,
+      isVerified: true, // Auto-verify admin-created users
+      verificationCode: undefined, // No verification code needed
+      verificationCodeExpires: undefined,
+    });
+
+    await newUser.save();
+    console.log("✅ User saved to database (admin-created):", newUser.email);
+
+    res.status(201).json({
+      message: "User registered successfully by admin",
+      user: {
+        _id: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        role: newUser.role,
+        isVerified: newUser.isVerified,
+      },
+    });
+  } catch (err) {
+    console.error("❌ [REGISTER-ADMIN] Internal error:", err.message);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: err.message });
+  }
+};
+
 const login = async (req, res ) => {  
     try{
     const {email, password} = req.body 
@@ -124,10 +175,146 @@ const resendVerificationCode = async (req, res) => {
   res.status(200).json({ message: "Code resent" });
 };
 
+// GET /api/users - Get all users
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password -verificationCode -verificationCodeExpires');
+    res.status(200).json({ 
+      message: "Users fetched successfully", 
+      count: users.length,
+      users 
+    });
+  } catch (err) {
+    console.error("Error fetching users:", err.message);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+// GET /api/users/:id - Get single user by ID
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('-password -verificationCode -verificationCodeExpires');
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    res.status(200).json({ 
+      message: "User fetched successfully", 
+      user 
+    });
+  } catch (err) {
+    console.error("Error fetching user:", err.message);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+// PATCH /api/users/:id - Update user information
+// PATCH /api/users/:id - Update user information
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, email, role, isVerified, password } = req.body;
+
+    console.log("🔄 [UPDATE USER] Request received for user ID:", id);
+    console.log("📝 Update data:", { firstName, lastName, email, role, isVerified });
+
+    // Find the user
+    const user = await User.findById(id);
+    if (!user) {
+      console.log("❌ User not found:", id);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("✅ User found:", user.email);
+
+    // Check if email is being changed and if it already exists
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        console.log("❌ Email already in use:", email);
+        return res.status(409).json({ message: "Email already in use" });
+      }
+      user.email = email;
+      console.log("✅ Email updated to:", email);
+    }
+
+    // Update fields if provided
+    if (firstName) {
+      user.firstName = firstName;
+      console.log("✅ First name updated to:", firstName);
+    }
+    if (lastName) {
+      user.lastName = lastName;
+      console.log("✅ Last name updated to:", lastName);
+    }
+    if (role) {
+      user.role = role;
+      console.log("✅ Role updated to:", role);
+    }
+    
+    // Update verification status if provided
+    if (typeof isVerified === 'boolean') {
+      user.isVerified = isVerified;
+      console.log("✅ Verification status updated to:", isVerified);
+    }
+    
+    // Hash new password if provided
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user.password = hashedPassword;
+      console.log("✅ Password updated");
+    }
+
+    await user.save();
+    console.log("✅ User saved successfully");
+
+    res.status(200).json({ 
+      message: "User updated successfully", 
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+      }
+    });
+  } catch (err) {
+    console.error("❌ [UPDATE USER] Error:", err.message);
+    console.error("Stack trace:", err.stack);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+// DELETE /api/users/:id - Delete user
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByIdAndDelete(id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting user:", err.message);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
 
 module.exports = {
     register,
     login,
     verifyEmail,
     resendVerificationCode,
+    registerAdmin,
+    getAllUsers,
+    getUserById,
+    updateUser,
+    deleteUser,
 }

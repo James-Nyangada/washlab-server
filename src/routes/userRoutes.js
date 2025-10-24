@@ -1,9 +1,15 @@
 const express = require('express');
 const verifyToken = require('../middleware/authMiddleware'); // Middleware to verify token
 const authorizeRoles = require("../middleware/roleMiddleware");
+const { getAllUsers, getUserById, updateUser, deleteUser } = require('../controllers/authController');
 
 const router = express.Router();
 
+// User management routes - only super-admin can access
+router.get('/', verifyToken, authorizeRoles("super-admin"), getAllUsers);
+router.get('/:id', verifyToken, authorizeRoles("super-admin", "admin"), getUserById);
+router.patch('/:id', verifyToken, authorizeRoles("super-admin"), updateUser);
+router.delete('/:id', verifyToken, authorizeRoles("super-admin"), deleteUser);
 
 //only super-admin can access this route
 router.get('/super-admin', verifyToken, authorizeRoles("super-admin"), (req,res)=>{
